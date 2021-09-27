@@ -35,10 +35,15 @@ app.get("/urls/:shortURL", (req, res) => {
 
 app.post("/urls", (req, res) => {
   console.log(req.body); 
-  const randomString = generateRandomString(); // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  const randomString = generateRandomString();
+  urlDatabase[randomString] = req.body.longURL;
+  res.redirect(`/urls/${randomString}`);
 });
 
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
+});
 
 // app.get("/urls.json", (req, res) => {
 //   res.json(urlDatabase);
@@ -50,5 +55,6 @@ app.post("/urls", (req, res) => {
 
 
 function generateRandomString() {
-  Math.random().toString(36).substr(2, 6); 
+  const random = Math.random().toString(36).substr(2, 6);
+  return random;
 }
