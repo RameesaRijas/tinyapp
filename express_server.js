@@ -1,10 +1,13 @@
 const express = require("express");
 const app = express();
 const PORT = 8080;
+const cookieParser = require('cookie-parser')
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({extended: true}));
+app.use(cookieParser());
 
+//database
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -18,9 +21,18 @@ app.listen(PORT, () => {
   console.log(`Example app listening ${PORT}!`);
 });
 
+//login
+//setting cookie
+app.post("/login", (req, res) => {
+  res.cookie('username', req.body.username);
+  res.redirect("/urls");
+});
+
 //home index
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { urls: urlDatabase ,  
+    username: req.cookies["username"] //getting username cookie
+  };
   res.render("urls_index", templateVars);
 });
 
@@ -28,7 +40,10 @@ app.get("/urls", (req, res) => {
 //create random string, add new url & shortUrl to urldatabase
 //redirect to home page
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = {
+    username: req.cookies["username"],
+  };
+  res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
@@ -40,26 +55,25 @@ app.post("/urls", (req, res) => {
 
 //show page, each short url and it,s related long url
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  const templateVars = { shortURL: req.params.shortURL, 
+    longURL: urlDatabase[req.params.shortURL],
+    username: req.cookies["username"],
+  };
   res.render("urls_show", templateVars);
 });
 
 
 //redirect to long url when clicking shortUrl
 app.get("/u/:shortURL", (req, res) => {
-
   const longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
-  
 });
 
 //Delete url
 app.post("/urls/:shortURL/delete", (req, res) => {
-
   const shortURL = req.params.shortURL;
   delete(urlDatabase[shortURL]);
   res.redirect('/urls');
-
 });
 
 //Update the longUrl
