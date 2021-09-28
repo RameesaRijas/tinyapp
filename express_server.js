@@ -24,7 +24,7 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-//add new url , render to add url page
+//create new url , render to add url page
 //create random string, add new url & shortUrl to urldatabase
 //redirect to home page
 app.get("/urls/new", (req, res) => {
@@ -32,7 +32,6 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body); 
   const randomString = generateRandomString();
   urlDatabase[randomString] = req.body.longURL;
   res.redirect(`/urls/${randomString}`);
@@ -48,8 +47,19 @@ app.get("/urls/:shortURL", (req, res) => {
 
 //redirect to long url when clicking shortUrl
 app.get("/u/:shortURL", (req, res) => {
+
   const longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
+  
+});
+
+//Delete url
+app.post("/urls/:shortURL/delete", (req, res) => {
+
+  const shortURL = req.params.shortURL;
+  delete(urlDatabase[shortURL]);
+  res.redirect('/urls');
+
 });
 
 //random string generator
