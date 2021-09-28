@@ -28,6 +28,13 @@ app.post("/login", (req, res) => {
   res.redirect("/urls");
 });
 
+//logout
+//clear cookie
+app.post("/logout", (req, res) => {
+  res.clearCookie('username');
+  res.redirect("/urls");
+});
+
 //home index
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase ,  
