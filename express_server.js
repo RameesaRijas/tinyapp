@@ -9,8 +9,14 @@ app.use(cookieParser());
 
 //url database
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "6sj0ad"
+},
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "9qw1ou"
+}
 };
 
 //User database
@@ -34,7 +40,7 @@ app.listen(PORT, () => {
 //login
 //login page render
 app.get("/login", (req, res) => {
-  const templateVars = { email : null};
+  const templateVars = { user : null};
   res.render('login', templateVars);
 });
 
@@ -61,7 +67,7 @@ app.post("/logout", (req, res) => {
 
 ///registration page
 app.get("/register", (req, res) => {
-  const templateVars = { email : null};
+  const templateVars = { user : null};
   res.render('register', templateVars);
 });
 
@@ -92,7 +98,9 @@ app.get("/urls", (req, res) => {
   const loggedUser = usersDatabase[userId];
   const loggedEmail = loggedUser ? loggedUser.email : false;
   const templateVars = { urls: urlDatabase,
-    email: loggedEmail
+    user: loggedEmail,
+    userId,
+    
   };
   res.render("urls_index", templateVars);
 });
@@ -100,30 +108,51 @@ app.get("/urls", (req, res) => {
 
 //redirect to long url when clicking shortUrl
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
-  res.redirect(longURL);
+  const shortURL = req.params.shortURL;
+  const id = urlDatabase[req.params.shortURL];
+  if (id) {
+    const longURL = urlDatabase[shortURL]["longURL"];
+    res.redirect(longURL);
+  }
+  
+  res.send("notfound");
 });
 
 
 ///CRUD....
 
-//create new url , render to add url page
+//create new url
+//new url page
+//get new url via post requst
 //create random string, add new url & shortUrl to urldatabase
 //redirect to home page
 app.get("/urls/new", (req, res) => {
   const userId = req.cookies["user_id"];
   const loggedUser = usersDatabase[userId];
-  const loggedEmail = loggedUser ? loggedUser.email : false;
-  const templateVars = {
-    email: loggedEmail,
-  };
-  res.render("urls_new", templateVars);
+  if (loggedUser) {
+    const loggedEmail = loggedUser.email;
+    const templateVars = {
+      user: loggedEmail,
+    };
+    res.render("urls_new", templateVars);
+    return;
+  }
+  res.redirect("/urls");
 });
 
 app.post("/urls", (req, res) => {
-  const randomString = generateRandomString();
-  urlDatabase[randomString] = req.body.longURL;
-  res.redirect(`/urls/${randomString}`);
+  const userId = req.cookies["user_id"];
+  const loggedUser = usersDatabase[userId];
+  if (loggedUser) {
+    const randomString = generateRandomString();
+    urlDatabase[randomString] = {
+      longURL : req.body.longURL,
+      userID : loggedUser.id
+    }
+    res.redirect(`/urls/${randomString}`);
+    return;
+  }
+  res.status(403).send("Permission denied");
 });
 
 
@@ -132,11 +161,16 @@ app.get("/urls/:shortURL", (req, res) => {
   const userId = req.cookies["user_id"];
   const loggedUser = usersDatabase[userId];
   const loggedEmail = loggedUser ? loggedUser.email : false;
-  const templateVars = { shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL],
-    email: loggedEmail,
-  };
-  res.render("urls_show", templateVars);
+  const databaseID = urlDatabase[req.params.shortURL];
+  if (databaseID) {
+    const templateVars = { shortURL: req.params.shortURL,
+      longURL: databaseID.longURL,
+      user: loggedEmail,
+    };
+    res.render("urls_show", templateVars);
+    return;
+  }
+ res.status(404).send("Not Found");
 });
 
 
@@ -151,9 +185,13 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 //get shortUrl as key
 app.post("/urls/:id/update", (req, res) => {
   const shortURL = req.params.id;
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect(`/urls/${shortURL}`);
-
+  const databaseID = urlDatabase[shortURL];
+  if (databaseID) {
+    databaseID["longURL"] = req.body.longURL;
+    res.redirect(`/urls/${shortURL}`);
+    return;
+  }
+  res.status(404).send("Not Found")
 });
 
 //CRUD END
