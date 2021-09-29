@@ -34,9 +34,9 @@ app.listen(PORT, () => {
 
 //login
 //setting cookie
-app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect("/urls");
+app.get("/login", (req, res) => {
+  const templateVars = { email : null};
+  res.render('login', templateVars);
 });
 
 //logout

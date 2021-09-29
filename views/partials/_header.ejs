@@ -11,15 +11,11 @@
       </div>
     </div>
     <% if (!email) { %>
-      <form class="form-inline" action="/login" method="POST">
-        <div class="form-group mb-2">
-          <!-- <input class="form-control" type="text" name="username" placeholder="Username" style="margin-top: 1.2em" required> -->
-
-          <button type="submit" class="btn btn-outline-dark" style="margin-top:1.2em; margin-left:10px;">Login</button>
-        </div>
-      </form>
       <div class="form-group mb-2">
-        <a href="/register" class="btn btn-outline-dark" style="margin-top:1.2em; margin-left:10px;">Register</button>
+        <a href="/login" type="submit" class="btn btn-outline-dark" style="margin-top:1.2em; margin-left:10px;">Login</a>
+      </div>
+      <div class="form-group mb-2">
+        <a href="/register" class="btn btn-outline-dark" style="margin-top:1.2em; margin-left:10px;">Register
           </a>
       </div>
     <% } else { %>
