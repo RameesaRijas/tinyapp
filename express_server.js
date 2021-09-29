@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 const cookieParser = require('cookie-parser');
+const hasKey = Object.prototype.hasOwnProperty;
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({extended: true}));
@@ -12,11 +13,11 @@ const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
     userID: "6sj0ad"
-},
+  },
   i3BoGr: {
     longURL: "https://www.google.ca",
     userID: "9qw1ou"
-}
+  }
 };
 
 //User database
@@ -96,13 +97,16 @@ app.post("/register", (req, res) => {
 app.get("/urls", (req, res) => {
   const userId = req.cookies["user_id"];
   const loggedUser = usersDatabase[userId];
-  const loggedEmail = loggedUser ? loggedUser.email : false;
-  const templateVars = { urls: urlDatabase,
-    user: loggedEmail,
-    userId,
-    
-  };
-  res.render("urls_index", templateVars);
+  if (loggedUser) {
+    const loggedEmail = loggedUser.email;
+    const urlOfLoggedUser = urlsForUser(loggedUser.id, urlDatabase);
+    const templateVars = { urls: urlOfLoggedUser,
+      user: loggedEmail,
+    };
+    res.render("urls_index", templateVars);
+    return;
+  }
+  res.render("error", {user : null});
 });
 
 
@@ -114,8 +118,7 @@ app.get("/u/:shortURL", (req, res) => {
     const longURL = urlDatabase[shortURL]["longURL"];
     res.redirect(longURL);
   }
-  
-  res.send("notfound");
+  res.status(404).send("Content Not Found");
 });
 
 
@@ -148,11 +151,11 @@ app.post("/urls", (req, res) => {
     urlDatabase[randomString] = {
       longURL : req.body.longURL,
       userID : loggedUser.id
-    }
+    };
     res.redirect(`/urls/${randomString}`);
     return;
   }
-  res.status(403).send("Permission denied");
+  res.status(403).send("Access denied");
 });
 
 
@@ -161,8 +164,9 @@ app.get("/urls/:shortURL", (req, res) => {
   const userId = req.cookies["user_id"];
   const loggedUser = usersDatabase[userId];
   const loggedEmail = loggedUser ? loggedUser.email : false;
+  const urlOfUser = urlsForUser(userId, urlDatabase);
   const databaseID = urlDatabase[req.params.shortURL];
-  if (databaseID) {
+  if (databaseID && hasKey.call(urlOfUser, req.params.shortURL)) {
     const templateVars = { shortURL: req.params.shortURL,
       longURL: databaseID.longURL,
       user: loggedEmail,
@@ -170,15 +174,21 @@ app.get("/urls/:shortURL", (req, res) => {
     res.render("urls_show", templateVars);
     return;
   }
- res.status(404).send("Not Found");
+  res.status(403).send("Not Found");
 });
 
 
 //Delete url
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
-  delete(urlDatabase[shortURL]);
-  res.redirect('/urls');
+  const userId = req.cookies["user_id"];
+  const loggedUser = usersDatabase[userId];
+  if (loggedUser && urlDatabase[shortURL].userID === loggedUser.id) {
+    delete(urlDatabase[shortURL]);
+    res.redirect('/urls');
+    return;
+  }
+  res.status(403).send("You do not have permission");
 });
 
 //Update the longUrl
@@ -186,12 +196,14 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.post("/urls/:id/update", (req, res) => {
   const shortURL = req.params.id;
   const databaseID = urlDatabase[shortURL];
-  if (databaseID) {
+  const userId = req.cookies["user_id"];
+  const loggedUser = usersDatabase[userId];
+  if (databaseID && loggedUser.id === databaseID.userID) {
     databaseID["longURL"] = req.body.longURL;
     res.redirect(`/urls/${shortURL}`);
     return;
   }
-  res.status(404).send("Not Found")
+  res.status(403).send("You do not have permission");
 });
 
 //CRUD END
@@ -215,6 +227,7 @@ const findUserByEmail = (email, userdb) => {
   return false;
 };
 
+//create user
 const createUser = (email, password, userdb) => {
   const userId = generateRandomString();
   userdb[userId] = {
@@ -223,6 +236,20 @@ const createUser = (email, password, userdb) => {
     password,
   };
   return userId;
+};
+
+//filter url with userId
+const urlsForUser = (userId, urldb) => {
+  const result = {};
+  for (let url in urldb) {
+    if (urldb[url].userID === userId) {
+      result[url] = {
+        longURL : urldb[url].longURL,
+        userID : userId
+      };
+    }
+  }
+  return result;
 };
 
 
