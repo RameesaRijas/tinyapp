@@ -33,16 +33,30 @@ app.listen(PORT, () => {
 });
 
 //login
-//setting cookie
+//login page render
 app.get("/login", (req, res) => {
   const templateVars = { email : null};
   res.render('login', templateVars);
 });
 
+//login with email and password
+//get email and password from login form
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+  const userFound = findUserByEmail(email, usersDatabase);
+  if (userFound && userFound.password === password) {
+    res.cookie("user_id", userFound.id);
+    res.redirect("/urls");
+    return;
+  }
+  res.status(400).send("Wrong credential!");
+});
+
+
 //logout
 //clear cookie
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect("/urls");
 });
 
@@ -79,7 +93,7 @@ app.get("/urls", (req, res) => {
   const loggedUser = usersDatabase[userId];
   const loggedEmail = loggedUser ? loggedUser.email : false;
   const templateVars = { urls: urlDatabase ,  
-    email: loggedEmail //getting username cookie
+    email: loggedEmail
   };
   res.render("urls_index", templateVars);
 });
