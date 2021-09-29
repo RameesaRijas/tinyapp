@@ -2,7 +2,6 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 const cookieParser = require('cookie-parser');
-const uuid = require("uuid");
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({extended: true}));
@@ -15,18 +14,18 @@ const urlDatabase = {
 };
 
 //User database
-const usersDatabase = { 
+const usersDatabase = {
   "6sj0ad": {
-    id: "6sj0ad", 
-    email: "user1@email.com", 
+    id: "6sj0ad",
+    email: "user1@email.com",
     password: "user1password"
   },
- "9qw1ou": {
-    id: "9qw1ou", 
-    email: "bob@mail.com", 
+  "9qw1ou": {
+    id: "9qw1ou",
+    email: "bob@mail.com",
     password: "bobhascat"
   }
-}
+};
 
 app.listen(PORT, () => {
   console.log(`Example app listening ${PORT}!`);
@@ -60,13 +59,13 @@ app.post("/logout", (req, res) => {
   res.redirect("/urls");
 });
 
-///registration page 
+///registration page
 app.get("/register", (req, res) => {
   const templateVars = { email : null};
   res.render('register', templateVars);
 });
 
-//registration 
+//registration
 //get email and password from registration page
 //save this user database
 app.post("/register", (req, res) => {
@@ -92,7 +91,7 @@ app.get("/urls", (req, res) => {
   const userId = req.cookies["user_id"];
   const loggedUser = usersDatabase[userId];
   const loggedEmail = loggedUser ? loggedUser.email : false;
-  const templateVars = { urls: urlDatabase ,  
+  const templateVars = { urls: urlDatabase,
     email: loggedEmail
   };
   res.render("urls_index", templateVars);
@@ -133,7 +132,7 @@ app.get("/urls/:shortURL", (req, res) => {
   const userId = req.cookies["user_id"];
   const loggedUser = usersDatabase[userId];
   const loggedEmail = loggedUser ? loggedUser.email : false;
-  const templateVars = { shortURL: req.params.shortURL, 
+  const templateVars = { shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL],
     email: loggedEmail,
   };
@@ -162,10 +161,10 @@ app.post("/urls/:id/update", (req, res) => {
 ///Helper functions
 
 //random string generator
-function generateRandomString() {
+const generateRandomString = () => {
   const random = Math.random().toString(36).substr(2, 6);
   return random;
-}
+};
 
 //find user by email
 //check if email already exist in the database
@@ -176,7 +175,7 @@ const findUserByEmail = (email, userdb) => {
   }
 
   return false;
-}
+};
 
 const createUser = (email, password, userdb) => {
   const userId = generateRandomString();
@@ -184,8 +183,8 @@ const createUser = (email, password, userdb) => {
     id : userId,
     email,
     password,
-  }
+  };
   return userId;
-}
+};
 
 
