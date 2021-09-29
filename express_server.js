@@ -13,10 +13,6 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-app.get("/", (req, res) => {
-  res.send("Hello");
-});
-
 app.listen(PORT, () => {
   console.log(`Example app listening ${PORT}!`);
 });
@@ -35,6 +31,13 @@ app.post("/logout", (req, res) => {
   res.redirect("/urls");
 });
 
+///registration page 
+app.get("/register", (req, res) => {
+  res.render('register');
+});
+
+
+
 //home index
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase ,  
@@ -42,6 +45,16 @@ app.get("/urls", (req, res) => {
   };
   res.render("urls_index", templateVars);
 });
+
+
+//redirect to long url when clicking shortUrl
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
+});
+
+
+///CRUD....
 
 //create new url , render to add url page
 //create random string, add new url & shortUrl to urldatabase
@@ -70,12 +83,6 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 
-//redirect to long url when clicking shortUrl
-app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
-  res.redirect(longURL);
-});
-
 //Delete url
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
@@ -91,6 +98,10 @@ app.post("/urls/:id/update", (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 
 });
+
+//CRUD END
+
+///Helper functions
 
 //random string generator
 function generateRandomString() {
