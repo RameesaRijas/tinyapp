@@ -64,14 +64,17 @@ app.post("/register", (req, res) => {
   }
   //create user
   const userId = createUser(email, password, usersDatabase);
-  res.cookie("userId", userId);
+  res.cookie("user_id", userId);
   res.redirect("/urls");
 });
 
 //home index
 app.get("/urls", (req, res) => {
+  const userId = req.cookies["user_id"];
+  const loggedUser = usersDatabase[userId];
+  const loggedEmail = loggedUser ? loggedUser.email : false;
   const templateVars = { urls: urlDatabase ,  
-    username: req.cookies["username"] //getting username cookie
+    email: loggedEmail //getting username cookie
   };
   res.render("urls_index", templateVars);
 });
@@ -90,8 +93,11 @@ app.get("/u/:shortURL", (req, res) => {
 //create random string, add new url & shortUrl to urldatabase
 //redirect to home page
 app.get("/urls/new", (req, res) => {
+  const userId = req.cookies["user_id"];
+  const loggedUser = usersDatabase[userId];
+  const loggedEmail = loggedUser ? loggedUser.email : false;
   const templateVars = {
-    username: req.cookies["username"],
+    email: loggedEmail,
   };
   res.render("urls_new", templateVars);
 });
@@ -105,9 +111,12 @@ app.post("/urls", (req, res) => {
 
 //show page, each short url and it,s related long url
 app.get("/urls/:shortURL", (req, res) => {
+  const userId = req.cookies["user_id"];
+  const loggedUser = usersDatabase[userId];
+  const loggedEmail = loggedUser ? loggedUser.email : false;
   const templateVars = { shortURL: req.params.shortURL, 
     longURL: urlDatabase[req.params.shortURL],
-    username: req.cookies["username"],
+    email: loggedEmail,
   };
   res.render("urls_show", templateVars);
 });
@@ -152,7 +161,7 @@ const findUserByEmail = (email, userdb) => {
 
 const createUser = (email, password, userdb) => {
   const userId = generateRandomString();
-  usersDatabase[userId] = {
+  userdb[userId] = {
     id : userId,
     email,
     password,
