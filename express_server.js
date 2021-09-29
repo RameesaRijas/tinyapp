@@ -163,18 +163,25 @@ app.post("/urls", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const userId = req.cookies["user_id"];
   const loggedUser = usersDatabase[userId];
-  const loggedEmail = loggedUser ? loggedUser.email : false;
-  const urlOfUser = urlsForUser(userId, urlDatabase);
-  const databaseID = urlDatabase[req.params.shortURL];
-  if (databaseID && hasKey.call(urlOfUser, req.params.shortURL)) {
-    const templateVars = { shortURL: req.params.shortURL,
-      longURL: databaseID.longURL,
-      user: loggedEmail,
-    };
-    res.render("urls_show", templateVars);
-    return;
+  if (loggedUser) {
+    const urlOfUser = urlsForUser(loggedUser.id, urlDatabase);
+    const databaseID = urlDatabase[req.params.shortURL];
+    if (databaseID) {
+      if (hasKey.call(urlOfUser, req.params.shortURL)) {
+        const templateVars = { shortURL: req.params.shortURL,
+        longURL: databaseID.longURL,
+        user: loggedUser.email,
+        };
+        res.render("urls_show", templateVars);
+        return;
+      } else {
+        res.status(403).send("Access Denied");
+        return
+      }    
+    }
+    res.status(404).send("Not Found"); 
   }
-  res.status(403).send("Not Found");
+  res.redirect("/urls");
 });
 
 
