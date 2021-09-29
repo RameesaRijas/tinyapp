@@ -56,10 +56,14 @@ app.get("/register", (req, res) => {
 //save this user database
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).send("Email or Password field should not be empty!");
+    return;
+  }
   const userExist = findUserByEmail(email, usersDatabase);
   //check user exist
   if (userExist) {
-    res.status(401).send("User already exists, try again");
+    res.status(400).send("User already exists, try again");
     return;
   }
   //create user
