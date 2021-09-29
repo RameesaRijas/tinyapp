@@ -48,7 +48,8 @@ app.post("/logout", (req, res) => {
 
 ///registration page 
 app.get("/register", (req, res) => {
-  res.render('register');
+  const templateVars = { email : null};
+  res.render('register', templateVars);
 });
 
 //registration 
