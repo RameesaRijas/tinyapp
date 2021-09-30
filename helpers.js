@@ -14,7 +14,7 @@ const findUserByEmail = (email, userdb) => {
     const user = userdb[userId];
     if (email === user.email) return user;
   }
-  return false;
+  return undefined;
 };
 
 //create user
