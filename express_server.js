@@ -3,20 +3,29 @@ const app = express();
 const PORT = 8080;
 const cookieSession = require('cookie-session')
 const bcrypt = require('bcryptjs');
-const hasKey = Object.prototype.hasOwnProperty;
+const { generateRandomString, findUserByEmail, createUser, urlsForUser, checkCredentials , checkUserExist, checkUrlAccess}  = require("./helpers");
+
 
 app.set("view engine", "ejs");
 
 app.use(express.urlencoded({extended: true}));
 app.use(cookieSession({
   name: 'session',
-  keys: ["little things", "!PePeer234$lo"],
+  keys: ["little things", "!PePper234$lo"],
 
   // Cookie Options
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
-}))
+}));
 
-
+app.use((req, res, next) => {
+  const user_id = req.session.user_id;
+  const path = req.path;
+  const allowedPath = ["urls/new", "/urls/:shortURL"];
+  if (!user_id && allowedPath.includes(path)) {
+      res.redirect('/urls');
+  }
+  next();
+})
 
 //url database
 const urlDatabase = {
@@ -51,6 +60,10 @@ app.listen(PORT, () => {
   console.log(`Example app listening ${PORT}!`);
 });
 
+app.get("/", (req, res) => {
+  res.redirect('/urls');
+});
+
 //login
 //login page render
 app.get("/login", (req, res) => {
@@ -62,16 +75,13 @@ app.get("/login", (req, res) => {
 //get email and password from login form
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  const userFound = findUserByEmail(email, usersDatabase);
-  if (userFound) {
-    const comparePassword = bcrypt.compareSync(password, userFound.password);
-    if (comparePassword) {
-      req.session.user_id = userFound.id;
-      res.redirect("/urls");
-      return;
-    }
+  const checkUser = checkCredentials(usersDatabase, email, password);
+  if (checkUser.user_id) {
+    req.session.user_id = checkUser.user_id;
+    res.redirect("/urls");
+    return;
   }
-  res.status(400).send("Wrong credential!");
+  res.status(400).send(checkUser.error);
 });
 
 
@@ -93,14 +103,11 @@ app.get("/register", (req, res) => {
 //save this user database
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    res.status(400).send("Email or Password field should not be empty!");
-    return;
-  }
   const userExist = findUserByEmail(email, usersDatabase);
+  const userCheck = checkUserExist(email, password, userExist);
   //check user exist
-  if (userExist) {
-    res.status(400).send("User already exists, try again");
+  if (userCheck.error) {
+    res.status(400).send(userCheck.error);
     return;
   }
   //create user
@@ -159,6 +166,7 @@ app.get("/urls/new", (req, res) => {
   res.redirect("/urls");
 });
 
+
 app.post("/urls", (req, res) => {
   const userId = req.session.user_id;
   const loggedUser = usersDatabase[userId];
@@ -179,23 +187,14 @@ app.post("/urls", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const userId = req.session.user_id;
   const loggedUser = usersDatabase[userId];
+  const shortURL = req.params.shortURL;
   if (loggedUser) {
-    const urlOfUser = urlsForUser(loggedUser.id, urlDatabase);
-    const databaseID = urlDatabase[req.params.shortURL];
-    if (databaseID) {
-      if (hasKey.call(urlOfUser, req.params.shortURL)) {
-        const templateVars = { shortURL: req.params.shortURL,
-        longURL: databaseID.longURL,
-        user: loggedUser.email,
-        };
-        res.render("urls_show", templateVars);
-        return;
-      } else {
-        res.status(403).send("Access Denied");
-        return
-      }    
+  const urlAccess = checkUrlAccess(loggedUser, shortURL, urlDatabase);
+    if (urlAccess.variable) {
+      res.render("urls_show", urlAccess.variable);
+      return;
     }
-    res.status(404).send("Not Found"); 
+    res.status(urlAccess.code).send(urlAccess.error);
   }
   res.redirect("/urls");
 });
@@ -231,49 +230,5 @@ app.post("/urls/:id/update", (req, res) => {
 });
 
 //CRUD END
-
-///Helper functions
-
-//random string generator
-const generateRandomString = () => {
-  const random = Math.random().toString(36).substr(2, 6);
-  return random;
-};
-
-//find user by email
-//check if email already exist in the database
-const findUserByEmail = (email, userdb) => {
-  for (let userId in userdb) {
-    const user = userdb[userId];
-    if (email === user.email) return user;
-  }
-  return false;
-};
-
-//create user
-const createUser = (email, password, userdb) => {
-  const userId = generateRandomString();
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  userdb[userId] = {
-    id : userId,
-    password : hashedPassword,
-    email,   
-  };
-  return userId;
-};
-
-//filter url with userId
-const urlsForUser = (userId, urldb) => {
-  const result = {};
-  for (let url in urldb) {
-    if (urldb[url].userID === userId) {
-      result[url] = {
-        longURL : urldb[url].longURL,
-        userID : userId
-      };
-    }
-  }
-  return result;
-};
 
 
