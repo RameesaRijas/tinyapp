@@ -24,7 +24,7 @@ const createUser = (email, password, userdb) => {
   userdb[userId] = {
     id : userId,
     password : hashedPassword,
-    email,   
+    email,
   };
   return userId;
 };
@@ -49,11 +49,11 @@ const checkCredentials = (userDb, email, password) => {
   if (userFound) {
     const comparePassword = bcrypt.compareSync(password, userFound.password);
     if (comparePassword) {
-      return {user_id : userFound.id, error : null};
+      return {userId : userFound.id, error : null};
     }
-    return {user_id : null, error :"Incorrect Password"};
+    return {userId : null, error :"Incorrect Password"};
   }
-  return {user_id : null, error :"No User Found, Please Register First"};
+  return {userId : null, error :"No User Found, Please Register First"};
 };
 
 //check if user exist
@@ -66,11 +66,11 @@ const checkUserExist = (email, password, userExist) => {
     return {error : "User already exists, try again"};
   }
   return true;
-}
+};
 
 //check user has permission to page
 const checkUrlAccess = (loggedUser, shortURL, urlDb) => {
-    const urlOfUser = urlsForUser(loggedUser.id, urlDb);
+  const urlOfUser = urlsForUser(loggedUser.id, urlDb);
   const databaseID = urlDb[shortURL];
   if (databaseID) {
     if (hasKey.call(urlOfUser, shortURL)) {
@@ -83,10 +83,10 @@ const checkUrlAccess = (loggedUser, shortURL, urlDb) => {
       
     } else {
       return {variable: null, error :"Access Denied", code : 403};
-    }    
+    }
   }
   return {variable: null, error :"Not Found", code : 404};
-}
+};
 
 
 
