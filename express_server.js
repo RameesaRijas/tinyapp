@@ -1,31 +1,22 @@
 const express = require("express");
 const app = express();
 const PORT = 8080;
-const cookieSession = require('cookie-session')
+const cookieSession = require('cookie-session');
 const bcrypt = require('bcryptjs');
+const methodOverride = require('method-override');
 const { generateRandomString, findUserByEmail, createUser, urlsForUser, checkCredentials , checkUserExist, checkUrlAccess}  = require("./helpers");
 
 
 app.set("view engine", "ejs");
 
 app.use(express.urlencoded({extended: true}));
+app.use(methodOverride('_method'));
 app.use(cookieSession({
   name: 'session',
   keys: ["little things", "!PePper234$lo"],
-
   // Cookie Options
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
-
-app.use((req, res, next) => {
-  const user_id = req.session.user_id;
-  const path = req.path;
-  const allowedPath = ["urls/new", "/urls/:shortURL"];
-  if (!user_id && allowedPath.includes(path)) {
-      res.redirect('/urls');
-  }
-  next();
-})
 
 //url database
 const urlDatabase = {
@@ -76,8 +67,8 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
   const checkUser = checkCredentials(usersDatabase, email, password);
-  if (checkUser.user_id) {
-    req.session.user_id = checkUser.user_id;
+  if (checkUser.userId) {
+    req.session.userId = checkUser.userId;
     res.redirect("/urls");
     return;
   }
@@ -88,7 +79,7 @@ app.post("/login", (req, res) => {
 //logout
 //clear cookie
 app.post("/logout", (req, res) => {
-  req.session.user_id = null
+  req.session.userId = null;
   res.redirect("/urls");
 });
 
@@ -112,16 +103,17 @@ app.post("/register", (req, res) => {
   }
   //create user
   const userId = createUser(email, password, usersDatabase);
-  req.session.user_id = userId;
+  req.session.userId = userId;
   res.redirect("/urls");
 });
 
-//home index
+//shows all url that created by url
 app.get("/urls", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.userId;
   const loggedUser = usersDatabase[userId];
   if (loggedUser) {
     const loggedEmail = loggedUser.email;
+    //show url that are only belongs to the user
     const urlOfLoggedUser = urlsForUser(loggedUser.id, urlDatabase);
     const templateVars = { urls: urlOfLoggedUser,
       user: loggedEmail,
@@ -132,7 +124,7 @@ app.get("/urls", (req, res) => {
   res.render("error", {user : null});
 });
 
-
+//public endpoints
 //redirect to long url when clicking shortUrl
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
@@ -140,20 +132,22 @@ app.get("/u/:shortURL", (req, res) => {
   if (id) {
     const longURL = urlDatabase[shortURL]["longURL"];
     res.redirect(longURL);
+    return;
   }
   res.status(404).send("Content Not Found");
 });
 
 
-///CRUD....
-
+/**
+ * CRUD
+ */
 //create new url
 //new url page
 //get new url via post requst
 //create random string, add new url & shortUrl to urldatabase
 //redirect to home page
 app.get("/urls/new", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.userId;
   const loggedUser = usersDatabase[userId];
   if (loggedUser) {
     const loggedEmail = loggedUser.email;
@@ -163,12 +157,12 @@ app.get("/urls/new", (req, res) => {
     res.render("urls_new", templateVars);
     return;
   }
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 
 app.post("/urls", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.userId;
   const loggedUser = usersDatabase[userId];
   if (loggedUser) {
     const randomString = generateRandomString();
@@ -182,28 +176,33 @@ app.post("/urls", (req, res) => {
   res.status(403).send("Access denied");
 });
 
-
+//Read
 //show page, each short url and it,s related long url
+//get id
+//show details of the urlId
 app.get("/urls/:shortURL", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.userId;
   const loggedUser = usersDatabase[userId];
   const shortURL = req.params.shortURL;
   if (loggedUser) {
-  const urlAccess = checkUrlAccess(loggedUser, shortURL, urlDatabase);
+    const urlAccess = checkUrlAccess(loggedUser, shortURL, urlDatabase);
     if (urlAccess.variable) {
       res.render("urls_show", urlAccess.variable);
       return;
     }
     res.status(urlAccess.code).send(urlAccess.error);
+    return;
   }
   res.redirect("/urls");
 });
 
 
 //Delete url
-app.post("/urls/:shortURL/delete", (req, res) => {
+//get id of the url
+//delete url with the urlId
+app.delete("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  const userId = req.session.user_id;
+  const userId = req.session.userId;
   const loggedUser = usersDatabase[userId];
   if (loggedUser && urlDatabase[shortURL].userID === loggedUser.id) {
     delete(urlDatabase[shortURL]);
@@ -216,19 +215,19 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 //Update the longUrl
 //get shortUrl as key
-app.post("/urls/:id/update", (req, res) => {
+app.put("/urls/:id", (req, res) => {
   const shortURL = req.params.id;
   const databaseID = urlDatabase[shortURL];
-  const userId = req.session.user_id;
+  const userId = req.session.userId;
   const loggedUser = usersDatabase[userId];
-  if (databaseID && loggedUser.id === databaseID.userID) {
-    databaseID["longURL"] = req.body.longURL;
-    res.redirect(`/urls/${shortURL}`);
-    return;
+  if (databaseID && loggedUser) {
+    if (loggedUser.id === databaseID.userID) {
+      databaseID["longURL"] = req.body.longURL;
+      res.redirect(`/urls/${shortURL}`);
+      return;
+    }
   }
   res.status(403).send("You do not have permission");
 });
 
 //CRUD END
-
-
