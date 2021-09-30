@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const PORT = 8080;
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
 const hasKey = Object.prototype.hasOwnProperty;
 
 app.set("view engine", "ejs");
@@ -21,16 +22,19 @@ const urlDatabase = {
 };
 
 //User database
+//making hash password
+const user1password = bcrypt.hashSync("user1password", 10);
+const user2password = bcrypt.hashSync("12345", 10);
 const usersDatabase = {
   "6sj0ad": {
     id: "6sj0ad",
     email: "user1@email.com",
-    password: "user1password"
+    password: user1password
   },
   "9qw1ou": {
     id: "9qw1ou",
     email: "bob@mail.com",
-    password: "bobhascat"
+    password: user2password
   }
 };
 
@@ -50,10 +54,13 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
   const userFound = findUserByEmail(email, usersDatabase);
-  if (userFound && userFound.password === password) {
-    res.cookie("user_id", userFound.id);
-    res.redirect("/urls");
-    return;
+  if (userFound) {
+    const comparePassword = bcrypt.compareSync(password, userFound.password);
+    if (comparePassword) {
+      res.cookie("user_id", userFound.id);
+      res.redirect("/urls");
+      return;
+    }
   }
   res.status(400).send("Wrong credential!");
 });
@@ -198,6 +205,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.status(403).send("You do not have permission");
 });
 
+
 //Update the longUrl
 //get shortUrl as key
 app.post("/urls/:id/update", (req, res) => {
@@ -230,17 +238,17 @@ const findUserByEmail = (email, userdb) => {
     const user = userdb[userId];
     if (email === user.email) return user;
   }
-
   return false;
 };
 
 //create user
 const createUser = (email, password, userdb) => {
   const userId = generateRandomString();
+  const hashedPassword = bcrypt.hashSync(password, 10);
   userdb[userId] = {
     id : userId,
-    email,
-    password,
+    password : hashedPassword,
+    email,   
   };
   return userId;
 };
