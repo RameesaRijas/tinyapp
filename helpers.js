@@ -34,10 +34,7 @@ const urlsForUser = (userId, urldb) => {
   const result = {};
   for (let url in urldb) {
     if (urldb[url].userID === userId) {
-      result[url] = {
-        longURL : urldb[url].longURL,
-        userID : userId
-      };
+      result[url] = urldb[url];
     }
   }
   return result;
